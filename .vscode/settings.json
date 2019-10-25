@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "/home/matthieu/.cache/pypoetry/virtualenvs/atlantic-server-ATzyBGqE-py3.7/bin/python",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintArgs": [
+        "--disable=C0111", // missing docstring
+        "--load-plugins=pylint_django,pylint_celery",
+    ],
+    "restructuredtext.confPath": "",
+}
