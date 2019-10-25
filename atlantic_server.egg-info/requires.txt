@@ -1,4 +1,0 @@
-Django<3.0.0,>=2.2.6
-django-filter<3.0.0,>=2.2.0
-djangorestframework<4.0.0,>=3.10.3
-drf-nested-routers<0.92,>=0.91
