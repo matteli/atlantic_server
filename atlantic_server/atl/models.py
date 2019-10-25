@@ -32,7 +32,7 @@ class User(AbstractUser):
 
 
 class ModelPlane(models.Model):
-    gltf = models.TextField()
+    gltf = models.FileField(upload_to="planes/")
     manufacturer = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
 
