@@ -2,3 +2,6 @@
 __pycache__
 migrations
 *.sqlite3
+.vscode
+*.egg.info
+dist
