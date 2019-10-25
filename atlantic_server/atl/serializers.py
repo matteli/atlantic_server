@@ -19,13 +19,15 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ModelPlaneSerializer(serializers.ModelSerializer):
+    gltf = serializers.FileField(use_url=False)
+
     class Meta:
         model = ModelPlane
         fields = "__all__"
 
 
 class PlaneSerializer(serializers.ModelSerializer):
-    gltf = ModelPlaneSerializer
+    gltf = ModelPlaneSerializer()
 
     class Meta:
         model = Plane

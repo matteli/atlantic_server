@@ -4,7 +4,7 @@ version = "0.3.0"
 description = "Server side of an application of an Aircraft Technical Log"
 authors = ["Matthieu Nué <matthieu.nue@gmail.com>"]
 license = "MIT"
-readme = "README.rst"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.7"
