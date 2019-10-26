@@ -6,10 +6,11 @@ This program is the sever side of the Atlantic app. It gives you a restful api.
 
 The recommended way to install it is to use a virtual environment.
 
-1. Install pipx, apache2
+1. Install pipx, apache2, module wsgi pour apache2
     ```
-    apt install pipx apache2
+    apt install pipx apache2 libapache2-mod-wsgi
     ```
+
 2. If your root user, create a user and log it
     ```
     adduser username
@@ -63,6 +64,7 @@ The recommended way to install it is to use a virtual environment.
 
 7. Enabled site for apache
     ```
+    a2dissite *
     a2ensite atlantic
-    systemctl restart apache2
+    systemctl reload apache2
     ```
