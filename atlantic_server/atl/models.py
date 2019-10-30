@@ -88,3 +88,21 @@ class Comment(models.Model):
     text = models.TextField(blank=True)
     progress = models.CharField(max_length=1, choices=PROGRESS_CHOICES, blank=True)
     image = models.TextField(blank=True)
+
+
+class InstructionSheet(models.Model):
+    title = models.CharField()
+    editor = models.ForeignKey(User, on_delete=models.SET_NULL)
+    state = models.CharField(max_length=1, choices=NATURE_CHOICES, default="D")
+    warning = models.TextField(blank=True)
+
+
+class Instruction(mdels.model):
+    num = models.IntegerField()
+    parent = models.ForeignKey(
+        Instruction, on_delete=models.CASCADE, blank=True, null=True
+    )
+    text = models.TextField()
+    warning = models.TextField(blank=True)
+    sheet = models.ForeignKey(InstructionSheet, on_delete=models.CASCADE)
+    image = models.TextField(blank=True)

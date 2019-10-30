@@ -25,6 +25,7 @@ from .serializers import (
     ListPageSerializer,
     CommentSerializer,
     CameraSerializer,
+    InstructionSheetSerializer,
 )
 from .const import PROGRESS_CHOICES, NATURE_CHOICES
 
@@ -159,3 +160,7 @@ class CameraViewSet(viewsets.ModelViewSet):
         else:
             view = 1
         serializer.save(plane=plane, view=view)
+
+
+class InstructionShetViewSet(viewsets.ModelViewSet):
+    serializer_class = InstructionSheetSerializer

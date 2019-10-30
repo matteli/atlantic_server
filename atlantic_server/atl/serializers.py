@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from django.db.models import Max
-from .models import Page, Plane, User, Comment, Camera, ModelPlane
+from .models import (
+    Page,
+    Plane,
+    User,
+    Comment,
+    Camera,
+    ModelPlane,
+    InstructionSheet,
+    Instruction,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -97,13 +106,23 @@ class PageSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         camera_data = validated_data.pop("camera")
         comment_data = validated_data.pop("comments")
-
         camera = Camera.objects.create(
             **camera_data, name=validated_data["title"], plane=validated_data["plane"]
         )
-
         page = Page.objects.create(camera=camera, **validated_data)
-
         Comment.objects.create(**comment_data, page=page, progress="O")
-
         return page
+
+
+class InstructionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Instruction
+        field = "__all__"
+
+
+class InstructionSheetSerializer(serializers.ModelSerializer):
+    Instructions = InstructionSerializer()
+
+    class Meta:
+        model = InstructionSheet
+        field = "__all__"
