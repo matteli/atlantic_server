@@ -1,6 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Plane, Page, Comment, Camera, ModelPlane
+from .models import (
+    User,
+    Plane,
+    Page,
+    Comment,
+    Camera,
+    ModelPlane,
+    InstructionSheet,
+    Instruction,
+)
 
 
 class PageAdmin(admin.ModelAdmin):
@@ -13,3 +22,5 @@ admin.site.register(ModelPlane)
 admin.site.register(Page, PageAdmin)
 admin.site.register(Comment)
 admin.site.register(Camera)
+admin.site.register(InstructionSheet)
+admin.site.register(Instruction)
