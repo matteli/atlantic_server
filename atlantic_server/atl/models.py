@@ -41,7 +41,9 @@ class Plane(models.Model):
     registration = models.CharField(max_length=10)
     manufacturer = models.CharField(max_length=100, blank=True)
     model = models.CharField(max_length=100, blank=True)
-    gltf = models.ForeignKey(ModelPlane, models.SET_NULL, blank=True, null=True)
+    gltf = models.ForeignKey(
+        ModelPlane, on_delete=models.SET_NULL, blank=True, null=True
+    )
     msn = models.IntegerField()
 
     def __str__(self):
@@ -84,7 +86,7 @@ class Comment(models.Model):
 
     page = models.ForeignKey(Page, related_name="comments", on_delete=models.CASCADE)
     edited = models.DateTimeField(auto_now_add=True)
-    editor = models.ForeignKey(User, on_delete=models.PROTECT)
+    editor = models.ForeignKey(User, on_delete=models.SET_NULL)
     text = models.TextField(blank=True)
     progress = models.CharField(max_length=1, choices=PROGRESS_CHOICES, blank=True)
     image = models.TextField(blank=True)
