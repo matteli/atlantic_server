@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django_filters import rest_framework as filters
 
-from .models import Plane, Page, Comment, Camera
+from .models import Plane, Page, Comment, Camera, Manual
 from .serializers import (
     PlaneSerializer,
     PageSerializer,
@@ -25,7 +25,8 @@ from .serializers import (
     ListPageSerializer,
     CommentSerializer,
     CameraSerializer,
-    InstructionSheetSerializer,
+    ManualSerializer,
+    ListManualSerializer,
 )
 from .const import PROGRESS_CHOICES, NATURE_CHOICES
 
@@ -162,5 +163,16 @@ class CameraViewSet(viewsets.ModelViewSet):
         serializer.save(plane=plane, view=view)
 
 
-class InstructionShetViewSet(viewsets.ModelViewSet):
-    serializer_class = InstructionSheetSerializer
+class ManualViewSet(viewsets.ModelViewSet):
+    serializer_class = ManualSerializer
+    queryset = Manual.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ListManualSerializer
+        # elif self.action == 'retrieve':
+        else:
+            return ManualSerializer
+
+    def perform_create(self, serializer):
+        manual = serializer.save(editor=self.request.user)

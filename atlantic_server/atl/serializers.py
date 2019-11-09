@@ -1,15 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Max
-from .models import (
-    Page,
-    Plane,
-    User,
-    Comment,
-    Camera,
-    ModelPlane,
-    InstructionSheet,
-    Instruction,
-)
+from .models import Page, Plane, User, Comment, Camera, ModelPlane, Manual
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -114,15 +105,19 @@ class PageSerializer(serializers.ModelSerializer):
         return page
 
 
-class InstructionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Instruction
-        field = "__all__"
-
-
-class InstructionSheetSerializer(serializers.ModelSerializer):
-    Instructions = InstructionSerializer()
+class ListManualSerializer(serializers.ModelSerializer):
+    editor = serializers.StringRelatedField()
 
     class Meta:
-        model = InstructionSheet
-        field = "__all__"
+        model = Manual
+        fields = ("id", "title", "editor", "state")
+        read_only_fields = ("id", "title", "editor", "state")
+
+
+class ManualSerializer(serializers.ModelSerializer):
+    editor = serializers.StringRelatedField()
+
+    class Meta:
+        model = Manual
+        fields = "__all__"
+        read_only_fields = ("editor",)

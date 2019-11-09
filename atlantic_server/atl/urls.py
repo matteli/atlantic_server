@@ -12,6 +12,7 @@ from .views import (
     CommentViewSet,
     CameraViewSet,
     TourViewSet,
+    ManualViewSet,
 )
 
 router = routers.SimpleRouter(trailing_slash=False)
@@ -25,6 +26,7 @@ planes_router.register(r"tours", TourViewSet, basename="tour")
 pages_router = routers.NestedSimpleRouter(planes_router, r"pages", lookup="page")
 pages_router.register(r"comments", CommentViewSet, basename="comment")
 
+router.register(r"manuals", ManualViewSet)
 
 urlpatterns = [
     path("auth/refresh", auth_refresh),

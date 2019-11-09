@@ -1,5 +1,6 @@
 import csv
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from .const import NATURE_CHOICES, PROGRESS_CHOICES
@@ -21,6 +22,10 @@ def import_csv_in_group(path, groupname):
                     last_name=row[4],
                 )
                 user.groups.add(group)
+
+
+def get_sentinel_user():
+    return get_user_model().objects.get_or_create(username="deleted")[0]
 
 
 class User(AbstractUser):
@@ -86,25 +91,14 @@ class Comment(models.Model):
 
     page = models.ForeignKey(Page, related_name="comments", on_delete=models.CASCADE)
     edited = models.DateTimeField(auto_now_add=True)
-    editor = models.ForeignKey(User, on_delete=models.SET_NULL)
+    editor = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
     text = models.TextField(blank=True)
     progress = models.CharField(max_length=1, choices=PROGRESS_CHOICES, blank=True)
     image = models.TextField(blank=True)
 
 
-class InstructionSheet(models.Model):
-    title = models.CharField()
-    editor = models.ForeignKey(User, on_delete=models.SET_NULL)
+class Manual(models.Model):
+    title = models.TextField()
+    editor = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
     state = models.CharField(max_length=1, choices=NATURE_CHOICES, default="D")
-    warning = models.TextField(blank=True)
-
-
-class Instruction(mdels.model):
-    num = models.IntegerField()
-    parent = models.ForeignKey(
-        Instruction, on_delete=models.CASCADE, blank=True, null=True
-    )
-    text = models.TextField()
-    warning = models.TextField(blank=True)
-    sheet = models.ForeignKey(InstructionSheet, on_delete=models.CASCADE)
-    image = models.TextField(blank=True)
+    text = models.TextField(blank=True)
