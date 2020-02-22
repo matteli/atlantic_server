@@ -1,4 +1,5 @@
-/media
+atlantic_server/media
+atlantic_server/doc
 __pycache__
 migrations
 *.sqlite3

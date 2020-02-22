@@ -12,7 +12,10 @@ from .views import (
     CommentViewSet,
     CameraViewSet,
     TourViewSet,
-    ManualViewSet,
+    DocViewSet,
+    DocPlaneViewSet,
+    FileViewSet,
+    PlaneFileViewSet,
 )
 
 router = routers.SimpleRouter(trailing_slash=False)
@@ -23,10 +26,17 @@ planes_router.register(r"pages", PageViewSet, basename="page")
 planes_router.register(r"cameras", CameraViewSet, basename="camera")
 planes_router.register(r"tours", TourViewSet, basename="tour")
 
-pages_router = routers.NestedSimpleRouter(planes_router, r"pages", lookup="page")
-pages_router.register(r"comments", CommentViewSet, basename="comment")
+planes_pages_router = routers.NestedSimpleRouter(planes_router, r"pages", lookup="page")
+planes_pages_router.register(r"comments", CommentViewSet, basename="comment")
 
-router.register(r"manuals", ManualViewSet)
+router.register(r"docs", DocViewSet, basename="doc")
+
+docs_router = routers.NestedSimpleRouter(router, r"docs", lookup="doc")
+docs_router.register(r"planes", DocPlaneViewSet, basename="plane")
+docs_router.register(r"files", FileViewSet, basename="file")
+
+docs_planes_router = routers.NestedSimpleRouter(docs_router, r"planes", lookup="plane")
+docs_planes_router.register(r"files", PlaneFileViewSet, basename="file")
 
 urlpatterns = [
     path("auth/refresh", auth_refresh),
@@ -37,4 +47,6 @@ urlpatterns = [
 
 urlpatterns += router.urls
 urlpatterns += planes_router.urls
-urlpatterns += pages_router.urls
+urlpatterns += planes_pages_router.urls
+urlpatterns += docs_router.urls
+urlpatterns += docs_planes_router.urls

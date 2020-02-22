@@ -1,6 +1,15 @@
 from rest_framework import serializers
 from django.db.models import Max
-from .models import Page, Plane, User, Comment, Camera, ModelPlane, Manual
+from .models import (
+    Page,
+    Plane,
+    User,
+    Comment,
+    Camera,
+    ModelPlane,
+)
+import io
+from . import gitdoc as gd
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -27,7 +36,7 @@ class ModelPlaneSerializer(serializers.ModelSerializer):
 
 
 class PlaneSerializer(serializers.ModelSerializer):
-    gltf = ModelPlaneSerializer()
+    modelPlane = ModelPlaneSerializer()
 
     class Meta:
         model = Plane
@@ -105,19 +114,52 @@ class PageSerializer(serializers.ModelSerializer):
         return page
 
 
-class ListManualSerializer(serializers.ModelSerializer):
-    editor = serializers.StringRelatedField()
-
+"""class RepoDocSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Manual
-        fields = ("id", "title", "editor", "state")
-        read_only_fields = ("id", "title", "editor", "state")
-
-
-class ManualSerializer(serializers.ModelSerializer):
-    editor = serializers.StringRelatedField()
-
-    class Meta:
-        model = Manual
+        model = RepoDoc
         fields = "__all__"
-        read_only_fields = ("editor",)
+
+
+class FileDocSerializerRL(serializers.ModelSerializer):
+    stream = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileDoc
+        fields = "__all__"
+
+    def get_stream(self, obj):
+        return "coucou"
+
+
+class FileDocSerializerCU(serializers.ModelSerializer):
+    stream = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = FileDoc
+        fields = ("file", "stream")
+
+    def update(self, instance, validated_data):
+        gd.commit_file(
+            validated_data.pop("stream"),
+            validated_data["file"],
+            "moi",
+            "matthieu.nue@gmail.com",
+            "other commit",
+            str(validated_data["repodoc"].modelPlane),
+            validated_data.pop("parent"),
+        )
+        filedoc = super().update(validated_data)
+        return filedoc
+
+    def create(self, validated_data):
+        gd.commit_file(
+            validated_data.pop("stream"),
+            validated_data["file"],
+            "moi",
+            "matthieu.nue@gmail.com",
+            "first commit",
+            str(validated_data["repodoc"].modelPlane),
+        )
+        filedoc = super().create(validated_data)
+        # fileDoc = FileDoc.objects.create(**validated_data)
+        return filedoc"""

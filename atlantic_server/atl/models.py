@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from .const import NATURE_CHOICES, PROGRESS_CHOICES
+from . import gitdoc as gd
+from django.template.defaultfilters import slugify
 
 
 def import_csv_in_group(path, groupname):
@@ -41,12 +43,24 @@ class ModelPlane(models.Model):
     manufacturer = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
 
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude=exclude)
+        if (
+            ModelPlane.objects.filter(manufacturer=self.manufacturer)
+            .filter(model=self.model)
+            .exists()
+        ):
+            raise ValidationError("Manufacturer with model must be unique")
+
+    def __str__(self):
+        return "%s %s" % (self.manufacturer, self.model)
+
 
 class Plane(models.Model):
     registration = models.CharField(max_length=10)
-    manufacturer = models.CharField(max_length=100, blank=True)
-    model = models.CharField(max_length=100, blank=True)
-    gltf = models.ForeignKey(
+    # manufacturer = models.CharField(max_length=100, blank=True)
+    # model = models.CharField(max_length=100, blank=True)
+    modelPlane = models.ForeignKey(
         ModelPlane, on_delete=models.SET_NULL, blank=True, null=True
     )
     msn = models.IntegerField()
@@ -97,8 +111,19 @@ class Comment(models.Model):
     image = models.TextField(blank=True)
 
 
-class Manual(models.Model):
-    title = models.TextField()
-    editor = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
-    state = models.CharField(max_length=1, choices=NATURE_CHOICES, default="D")
-    text = models.TextField(blank=True)
+class Doc(models.Model):
+    model_plane = models.OneToOneField(ModelPlane, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # Call the "real" save() method.
+        reponame = slugify(str(self.model_plane))
+        gd.init_repo(reponame)
+        gd.commit_file(
+            reponame,
+            "readme.md",
+            "These documents were produced by Atlantic",
+            "Matthieu Nué",
+            "matthieu.nue@gmail.com",
+            "First commit",
+            first_commit=True,
+        )

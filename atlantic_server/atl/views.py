@@ -1,23 +1,32 @@
+import os
+
 from django.contrib.auth import authenticate
 from django.db.models import Max
 
-# from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authtoken.models import Token
-
-# from rest_framework import permissions
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAdminUser,
+    IsAuthenticatedOrReadOnly,
+    SAFE_METHODS,
+    BasePermission,
+)
 from rest_framework import viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.status import (
     HTTP_400_BAD_REQUEST,
+    HTTP_403_FORBIDDEN,
+    HTTP_404_NOT_FOUND,
     HTTP_422_UNPROCESSABLE_ENTITY,
     HTTP_200_OK,
 )
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.renderers import JSONRenderer
+
 from django_filters import rest_framework as filters
 
-from .models import Plane, Page, Comment, Camera, Manual
+from .models import Plane, Page, Comment, Camera, Doc
 from .serializers import (
     PlaneSerializer,
     PageSerializer,
@@ -25,10 +34,14 @@ from .serializers import (
     ListPageSerializer,
     CommentSerializer,
     CameraSerializer,
-    ManualSerializer,
-    ListManualSerializer,
 )
+from . import gitdoc as gd
 from .const import PROGRESS_CHOICES, NATURE_CHOICES
+
+
+class ReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
 
 
 @api_view(["GET", "POST"])
@@ -93,6 +106,7 @@ class PageViewSet(viewsets.ModelViewSet):
     serializer_class = PageSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = PageFilter
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -112,7 +126,7 @@ class PageViewSet(viewsets.ModelViewSet):
         serializer.save(plane=plane)
 
 
-class TourViewSet(viewsets.ModelViewSet):
+class TourViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PageSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = PageFilter
@@ -125,6 +139,7 @@ class TourViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
         return Comment.objects.filter(page__id=self.kwargs["page_pk"])
@@ -142,7 +157,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class CameraViewSet(viewsets.ModelViewSet):
     serializer_class = CameraSerializer
-    # permission_classes = (IsAdminUser,)
+    permission_classes = (IsAdminUser | ReadOnly,)
 
     def get_queryset(self):
         return (
@@ -163,16 +178,109 @@ class CameraViewSet(viewsets.ModelViewSet):
         serializer.save(plane=plane, view=view)
 
 
-class ManualViewSet(viewsets.ModelViewSet):
-    serializer_class = ManualSerializer
-    queryset = Manual.objects.all()
+class DocViewSet(viewsets.ViewSet):
+    def list(self, request):
+        l = os.listdir("./doc")
+        return Response(l, status=HTTP_200_OK)
 
-    def get_serializer_class(self):
-        if self.action == "list":
-            return ListManualSerializer
-        # elif self.action == 'retrieve':
+    def create(self, request):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def retrieve(self, request, pk=None):
+        if os.path.isdir("./doc/" + pk):
+            return Response(pk, status=HTTP_200_OK)
         else:
-            return ManualSerializer
+            return Response(pk, status=HTTP_404_NOT_FOUND)
 
-    def perform_create(self, serializer):
-        manual = serializer.save(editor=self.request.user)
+    def update(self, request, pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def partial_update(self, request, pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+
+class DocPlaneViewSet(viewsets.ViewSet):
+    def list(self, request, doc_pk=None):
+        l = gd.list_branches(doc_pk)
+        return Response(l, status=HTTP_200_OK)
+
+    def create(self, request, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def retrieve(self, request, pk=None, doc_pk=None):
+        b = gd.branch_exist(doc_pk, pk)
+        if b:
+            return Response(b, status=HTTP_200_OK)
+        else:
+            return Response(b, status=HTTP_404_NOT_FOUND)
+
+    def update(self, request, pk=None, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def partial_update(self, request, pk=None, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, pk=None, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+
+class PlaneFileViewSet(viewsets.ViewSet):
+    def list(self, request, doc_pk=None, plane_pk=None):
+        l = gd.list_files(doc_pk, plane_pk)
+        return Response(l, status=HTTP_200_OK)
+
+    def create(self, request, doc_pk=None, plane_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def retrieve(self, request, pk=None, doc_pk=None, plane_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def update(self, request, pk=None, doc_pk=None, plane_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def partial_update(self, request, pk=None, doc_pk=None, plane_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, pk=None, doc_pk=None, plane_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+
+class FileViewSet(viewsets.ViewSet):
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def list(self, request, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def create(self, request, doc_pk=None):
+        """
+        {"filename":"essai.md","branch":"master","content":"coucou"}
+        """
+        c = gd.commit_file(
+            doc_pk,
+            request.data["filename"],
+            request.data["content"],
+            str(self.request.user),
+            # "m@m.fr",
+            self.request.user.email,
+            branch_name=request.data["branch"],
+        )
+        if c:
+            return Response({"commit": c}, status=HTTP_200_OK)
+        else:
+            return Response({}, status=HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, pk=None, doc_pk=None):
+        d = gd.get_content(doc_pk, pk)
+        return Response(d, status=HTTP_200_OK)
+
+    def update(self, request, pk=None, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def partial_update(self, request, pk=None, doc_pk=None):
+        return Response({}, status=HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, pk=None, doc_pk=None):
+        pass
