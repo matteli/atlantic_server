@@ -7,6 +7,8 @@ from .models import (
     Comment,
     Camera,
     ModelPlane,
+    Doc,
+    File,
 )
 import io
 from . import gitdoc as gd
@@ -114,52 +116,30 @@ class PageSerializer(serializers.ModelSerializer):
         return page
 
 
-"""class RepoDocSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RepoDoc
-        fields = "__all__"
-
-
-class FileDocSerializerRL(serializers.ModelSerializer):
-    stream = serializers.SerializerMethodField()
+class DocSerializer(serializers.ModelSerializer):
+    model_plane = serializers.StringRelatedField()
 
     class Meta:
-        model = FileDoc
-        fields = "__all__"
-
-    def get_stream(self, obj):
-        return "coucou"
+        model = Doc
+        fields = ("model_plane", "slug_model_plane")
 
 
-class FileDocSerializerCU(serializers.ModelSerializer):
-    stream = serializers.CharField(write_only=True)
+class ListFileSerializer(serializers.ModelSerializer):
+    editor = serializers.StringRelatedField()
 
     class Meta:
-        model = FileDoc
-        fields = ("file", "stream")
+        model = File
+        exclude = ["doc"]
 
-    def update(self, instance, validated_data):
-        gd.commit_file(
-            validated_data.pop("stream"),
-            validated_data["file"],
-            "moi",
-            "matthieu.nue@gmail.com",
-            "other commit",
-            str(validated_data["repodoc"].modelPlane),
-            validated_data.pop("parent"),
-        )
-        filedoc = super().update(validated_data)
-        return filedoc
+    # def get_content(self, obj):
+    #    return gd.get_content(obj.doc, obj.hash)
 
-    def create(self, validated_data):
-        gd.commit_file(
-            validated_data.pop("stream"),
-            validated_data["file"],
-            "moi",
-            "matthieu.nue@gmail.com",
-            "first commit",
-            str(validated_data["repodoc"].modelPlane),
-        )
-        filedoc = super().create(validated_data)
-        # fileDoc = FileDoc.objects.create(**validated_data)
-        return filedoc"""
+
+'''class CreateFileSerializer(serializers.ModelSerializer):
+    editor = serializers.PrimaryKeyRelatedField()
+    doc = serializers.PrimaryKeyRelatedField()
+    content = serializers.CharField()
+
+    class Meta:
+        model = File
+        fields = "__all__"'''

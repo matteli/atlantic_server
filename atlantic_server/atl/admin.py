@@ -8,6 +8,7 @@ from .models import (
     Camera,
     ModelPlane,
     Doc,
+    File,
 )
 
 
@@ -22,3 +23,4 @@ admin.site.register(Page, PageAdmin)
 admin.site.register(Comment)
 admin.site.register(Camera)
 admin.site.register(Doc)
+admin.site.register(File)

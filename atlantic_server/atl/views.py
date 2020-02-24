@@ -1,4 +1,4 @@
-import os
+import os, re
 
 from django.contrib.auth import authenticate
 from django.db.models import Max
@@ -26,7 +26,7 @@ from rest_framework.renderers import JSONRenderer
 
 from django_filters import rest_framework as filters
 
-from .models import Plane, Page, Comment, Camera, Doc
+from .models import Plane, Page, Comment, Camera, Doc, File
 from .serializers import (
     PlaneSerializer,
     PageSerializer,
@@ -34,6 +34,8 @@ from .serializers import (
     ListPageSerializer,
     CommentSerializer,
     CameraSerializer,
+    DocSerializer,
+    ListFileSerializer,
 )
 from . import gitdoc as gd
 from .const import PROGRESS_CHOICES, NATURE_CHOICES
@@ -178,88 +180,93 @@ class CameraViewSet(viewsets.ModelViewSet):
         serializer.save(plane=plane, view=view)
 
 
-class DocViewSet(viewsets.ViewSet):
-    def list(self, request):
-        l = os.listdir("./doc")
-        return Response(l, status=HTTP_200_OK)
+class DocViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = DocSerializer
+    queryset = Doc.objects.all()
+    lookup_field = "slug_model_plane"
 
-    def create(self, request):
-        return Response({}, status=HTTP_403_FORBIDDEN)
-
-    def retrieve(self, request, pk=None):
-        if os.path.isdir("./doc/" + pk):
-            return Response(pk, status=HTTP_200_OK)
-        else:
-            return Response(pk, status=HTTP_404_NOT_FOUND)
-
-    def update(self, request, pk=None):
-        return Response({}, status=HTTP_403_FORBIDDEN)
-
-    def partial_update(self, request, pk=None):
-        return Response({}, status=HTTP_403_FORBIDDEN)
-
-    def destroy(self, request, pk=None):
-        return Response({}, status=HTTP_403_FORBIDDEN)
+    # def get_object(self):
+    #    return Doc.objects.get(slug_model_plane=self.kwargs["pk"])
 
 
 class DocPlaneViewSet(viewsets.ViewSet):
-    def list(self, request, doc_pk=None):
-        l = gd.list_branches(doc_pk)
+    def list(self, request, doc_slug_model_plane=None):
+        l = gd.list_branches(doc_slug_model_plane)
         return Response(l, status=HTTP_200_OK)
 
-    def create(self, request, doc_pk=None):
+    def create(self, request, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def retrieve(self, request, pk=None, doc_pk=None):
-        b = gd.branch_exist(doc_pk, pk)
+    def retrieve(self, request, pk=None, doc_slug_model_plane=None):
+        b = gd.branch_exist(doc_slug_model_plane, pk)
         if b:
             return Response(b, status=HTTP_200_OK)
         else:
             return Response(b, status=HTTP_404_NOT_FOUND)
 
-    def update(self, request, pk=None, doc_pk=None):
+    def update(self, request, pk=None, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def partial_update(self, request, pk=None, doc_pk=None):
+    def partial_update(self, request, pk=None, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def destroy(self, request, pk=None, doc_pk=None):
+    def destroy(self, request, pk=None, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
 
 class PlaneFileViewSet(viewsets.ViewSet):
-    def list(self, request, doc_pk=None, plane_pk=None):
-        l = gd.list_files(doc_pk, plane_pk)
-        return Response(l, status=HTTP_200_OK)
+    def list(self, request, doc_slug_model_plane=None, plane_pk=None):
+        list_file = gd.list_files(
+            self.kwargs["doc_slug_model_plane"], self.kwargs["plane_pk"]
+        )
+        list_hash = list(map(lambda d: d.get("hash"), list_file))
+        queryset = File.objects.filter(hash__in=list_hash)
+        resp = ListFileSerializer(queryset, many=True).data
+        for r in resp:
+            for l in list_file:
+                if l["hash"] == r["hash"]:
+                    r["title"] = l["title"]
+                    break
 
-    def create(self, request, doc_pk=None, plane_pk=None):
+        return Response(resp, status=HTTP_200_OK)
+
+    def create(self, request, doc_slug_model_plane=None, plane_pk=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def retrieve(self, request, pk=None, doc_pk=None, plane_pk=None):
+    def retrieve(self, request, pk=None, doc_slug_model_plane=None, plane_pk=None):
+        filename = re.sub(r"-(?!.*-)", ".", self.kwargs["pk"])
+        b = gd.get_content_by_name(
+            self.kwargs["doc_slug_model_plane"], self.kwargs["plane_pk"], filename,
+        )
+        if b:
+            return Response(b, status=HTTP_200_OK)
+        else:
+            return Response(b, status=HTTP_404_NOT_FOUND)
+
+    def update(self, request, pk=None, doc_slug_model_plane=None, plane_pk=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def update(self, request, pk=None, doc_pk=None, plane_pk=None):
+    def partial_update(
+        self, request, pk=None, doc_slug_model_plane=None, plane_pk=None
+    ):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def partial_update(self, request, pk=None, doc_pk=None, plane_pk=None):
-        return Response({}, status=HTTP_403_FORBIDDEN)
-
-    def destroy(self, request, pk=None, doc_pk=None, plane_pk=None):
+    def destroy(self, request, pk=None, doc_slug_model_plane=None, plane_pk=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
 
 class FileViewSet(viewsets.ViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    def list(self, request, doc_pk=None):
+    def list(self, request, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def create(self, request, doc_pk=None):
+    def create(self, request, doc_slug_model_plane=None):
         """
-        {"filename":"essai.md","branch":"master","content":"coucou"}
+        {"filename":"essai.md","branch":"all","content":"coucou"}
         """
         c = gd.commit_file(
-            doc_pk,
+            doc_slug_model_plane,
             request.data["filename"],
             request.data["content"],
             str(self.request.user),
@@ -272,15 +279,15 @@ class FileViewSet(viewsets.ViewSet):
         else:
             return Response({}, status=HTTP_400_BAD_REQUEST)
 
-    def retrieve(self, request, pk=None, doc_pk=None):
-        d = gd.get_content(doc_pk, pk)
+    def retrieve(self, request, pk=None, doc_slug_model_plane=None):
+        d = gd.get_content_by_hash(doc_slug_model_plane, pk)
         return Response(d, status=HTTP_200_OK)
 
-    def update(self, request, pk=None, doc_pk=None):
+    def update(self, request, pk=None, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def partial_update(self, request, pk=None, doc_pk=None):
+    def partial_update(self, request, pk=None, doc_slug_model_plane=None):
         return Response({}, status=HTTP_403_FORBIDDEN)
 
-    def destroy(self, request, pk=None, doc_pk=None):
+    def destroy(self, request, pk=None, doc_slug_model_plane=None):
         pass

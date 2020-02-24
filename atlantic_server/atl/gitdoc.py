@@ -13,7 +13,7 @@ def commit_file(
     content,
     author,
     email,
-    branch_name="master",
+    branch_name="all",
     message="",
     tz=0,
     first_commit=False,
@@ -37,8 +37,8 @@ def commit_file(
     commit = repo.create_commit(
         "refs/heads/" + branch_name, author, committer, message, tree, parents
     )
-    if commit:
-        return str(commit)
+    if blob:
+        return str(blob)
     else:
         return None
 
@@ -57,20 +57,35 @@ def branch_exist(repo_name, branch):
         return None
 
 
-def list_files(repo_name, branch_name):
+def get_tree(repo_name, branch_name):
     repo = Repository("doc/" + repo_name)
     branch = repo.branches.get(branch_name)
-    l = {}
     if branch:
         id = branch.target
         commit = repo.get(id)
-        tree = commit.tree
+        return commit.tree
+    return None
+
+
+def list_files(repo_name, branch_name):
+    l = []
+    tree = get_tree(repo_name, branch_name)
+    if tree:
         for obj in tree:
-            l[str(obj.id)] = obj.name
+            l.append({"hash": str(obj.id), "title": obj.name})
+            # l[str(obj.id)] = obj.name
     return l
 
 
-def get_content(repo_name, file_id):
+def get_content_by_hash(repo_name, hash):
     repo = Repository("doc/" + repo_name)
-    blob = repo.get(file_id)
+    blob = repo.get(hash)
     return blob.data.decode(encoding="UTF-8")
+
+
+def get_content_by_name(repo_name, branch_name, filename):
+    tree = get_tree(repo_name, branch_name)
+    if filename in tree:
+        blob = tree[filename]
+        return blob.data.decode(encoding="UTF-8")
+    return None
