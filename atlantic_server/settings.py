@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "django_filters",
     "atlantic_server.atl.apps.AtlConfig",
+    "atlantic_server.com.apps.ComConfig",
+    "atlantic_server.smd.apps.SmdConfig",
 ]
 
 MIDDLEWARE = [
@@ -57,7 +59,7 @@ ROOT_URLCONF = "atlantic_server.urls"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "atlantic_server.atl.apps.BearerAuthentication",
+        "atlantic_server.com.apps.BearerAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (),
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
@@ -85,7 +87,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "atlantic_server.wsgi.application"
 
-AUTH_USER_MODEL = "atl.User"
+AUTH_USER_MODEL = "com.User"
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases

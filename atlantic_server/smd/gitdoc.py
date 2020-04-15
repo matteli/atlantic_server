@@ -1,5 +1,6 @@
-from pygit2 import init_repository, Repository, Signature, GIT_FILEMODE_BLOB
 from time import time
+
+from pygit2 import init_repository, Repository, Signature, GIT_FILEMODE_BLOB
 
 
 def init_repo(reponame):
@@ -34,7 +35,7 @@ def commit_file(
     tree_builder.insert(filename, blob, GIT_FILEMODE_BLOB)
     tree = tree_builder.write()
     author = committer = Signature(author, email, int(time()), tz)
-    commit = repo.create_commit(
+    repo.create_commit(
         "refs/heads/" + branch_name, author, committer, message, tree, parents
     )
     if blob:
@@ -61,26 +62,19 @@ def get_tree(repo_name, branch_name):
     repo = Repository("doc/" + repo_name)
     branch = repo.branches.get(branch_name)
     if branch:
-        id = branch.target
-        commit = repo.get(id)
+        btarget = branch.target
+        commit = repo.get(btarget)
         return commit.tree
     return None
 
 
 def list_files(repo_name, branch_name):
-    l = []
+    files = []
     tree = get_tree(repo_name, branch_name)
     if tree:
         for obj in tree:
-            l.append({"hash": str(obj.id), "title": obj.name})
-            # l[str(obj.id)] = obj.name
-    return l
-
-
-def get_content_by_hash(repo_name, hash):
-    repo = Repository("doc/" + repo_name)
-    blob = repo.get(hash)
-    return blob.data.decode(encoding="UTF-8")
+            files.append({"hash": str(obj.id), "filename": obj.name})
+    return files
 
 
 def get_content_by_name(repo_name, branch_name, filename):
@@ -89,3 +83,9 @@ def get_content_by_name(repo_name, branch_name, filename):
         blob = tree[filename]
         return blob.data.decode(encoding="UTF-8")
     return None
+
+
+def get_content_by_hash(repo_name, blobhash):
+    repo = Repository("doc/" + repo_name)
+    blob = repo.get(blobhash)
+    return blob.data.decode(encoding="UTF-8")
