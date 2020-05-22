@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Doc, File
+from ..com.models import User, ModelPlane
 
 
 class DocSerializer(serializers.ModelSerializer):
@@ -7,12 +8,25 @@ class DocSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Doc
-        fields = ("model_plane", "slug_model_plane")
+        fields = "__all__"
 
 
-class ListFileSerializer(serializers.ModelSerializer):
-    editor = serializers.StringRelatedField()
+class ModelPlaneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ModelPlane
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
+
+
+class FileSerializer(serializers.ModelSerializer):
+    # editor = UserSerializer()
+    # doc = ModelPlaneSerializer()
 
     class Meta:
         model = File
-        exclude = ["doc"]
+        fields = ["blob_id", "doc", "editor", "type", "state", "hidden"]

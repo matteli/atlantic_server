@@ -1,91 +1,114 @@
 from time import time
 
-from pygit2 import init_repository, Repository, Signature, GIT_FILEMODE_BLOB
+# pylint: disable=no-name-in-module
+from pygit2 import (
+    init_repository,
+    Repository,
+    Signature,
+    GIT_FILEMODE_BLOB,
+)
 
 
-def init_repo(reponame):
-    repo = init_repository("doc/" + reponame, bare=True)
+def init_repo(repo_name):
+    init_repository("doc/" + repo_name, bare=True)
+    repo = Repo(repo_name)
     return repo
 
 
-def commit_file(
-    repo_name,
-    filename,
-    content,
-    author,
-    email,
-    branch_name="all",
-    message="",
-    tz=0,
-    first_commit=False,
-):
-    repo = Repository("doc/" + repo_name)
-    if not first_commit:
-        ref = repo.references["refs/heads/" + branch_name]
-        parent_commmit = repo.get(ref.target)
-        parents = [parent_commmit.id]
-        tree_parent = parent_commmit.tree_id
-        tree_builder = repo.TreeBuilder(tree_parent)
-        # if tree_builder.get(filename):
-        #    tree_builder.remove(filename)
-    else:
-        parents = []
-        tree_builder = repo.TreeBuilder()
-    blob = repo.create_blob(content.encode(encoding="UTF-8"))
-    tree_builder.insert(filename, blob, GIT_FILEMODE_BLOB)
-    tree = tree_builder.write()
-    author = committer = Signature(author, email, int(time()), tz)
-    repo.create_commit(
-        "refs/heads/" + branch_name, author, committer, message, tree, parents
-    )
-    if blob:
-        return str(blob)
-    else:
+class Repo(Repository):
+    def __init__(self, repo_name):
+        super().__init__("doc/" + repo_name)
+
+    def _get_tree(self, branch_name):
+        commit = self._get_commit(branch_name)
+        if commit:
+            return commit.tree
         return None
 
-
-def list_branches(repo_name):
-    repo = Repository("doc/" + repo_name)
-    return list(repo.branches)
-
-
-def branch_exist(repo_name, branch):
-    repo = Repository("doc/" + repo_name)
-    b = repo.branches.get(branch)
-    if b:
-        return b.branch_name
-    else:
+    def _get_commit(self, branch_name):
+        branch = self.branches.get(branch_name)
+        if branch:
+            commit_id = branch.target
+            commit = self.get(commit_id)
+            return commit
         return None
 
+    def _get_blob_by_name(self, branch_name, filename):
+        tree = self._get_tree(branch_name)
+        if filename in tree:
+            blob = tree[filename]
+            return blob
+        return None
 
-def get_tree(repo_name, branch_name):
-    repo = Repository("doc/" + repo_name)
-    branch = repo.branches.get(branch_name)
-    if branch:
-        btarget = branch.target
-        commit = repo.get(btarget)
-        return commit.tree
-    return None
+    def commit_file(
+        self,
+        filename,
+        content,
+        author,
+        email,
+        branch_name="master",
+        message="",
+        timezone=0,
+        first_commit=False,
+        parent_commit_id=0,
+    ):
+        if not first_commit:
+            if parent_commit_id:
+                parent_commit = self.get(parent_commit_id)
+            else:
+                parent_commit = self._get_commit(branch_name)
+            parents = [parent_commit.id]
+            tree_parent = parent_commit.tree_id
+            tree_builder = self.TreeBuilder(tree_parent)
+        else:
+            parents = []
+            tree_builder = self.TreeBuilder()
+        blob_id = self.create_blob(content.encode(encoding="UTF-8"))
+        tree_builder.insert(filename, blob_id, GIT_FILEMODE_BLOB)
+        tree = tree_builder.write()
+        author = committer = Signature(author, email, int(time()), timezone)
+        commit_id = self.create_commit(
+            "refs/heads/" + branch_name, author, committer, message, tree, parents
+        )
+        if commit_id:
+            return {"commit_id": str(commit_id), "blob_id": str(blob_id)}
+        return {"commit_id": "", "blob_id": ""}
 
+    def list_branches(self):
+        return list(self.branches)
 
-def list_files(repo_name, branch_name):
-    files = []
-    tree = get_tree(repo_name, branch_name)
-    if tree:
-        for obj in tree:
-            files.append({"hash": str(obj.id), "filename": obj.name})
-    return files
+    def branch_exist(self, branch):
+        branch = self.branches.get(branch)
+        if branch:
+            return True
+        return False
 
+    def file_exist(self, branch_name, filename):
+        tree = self._get_tree(branch_name)
+        return filename in tree
 
-def get_content_by_name(repo_name, branch_name, filename):
-    tree = get_tree(repo_name, branch_name)
-    if filename in tree:
-        blob = tree[filename]
+    def list_files(self, branch_name):
+        files = []
+        tree = self._get_tree(branch_name)
+        if tree:
+            for obj in tree:
+                files.append({"blob_id": str(obj.id), "filename": obj.name})
+        return files
+
+    def get_blob_by_name(self, branch_name, filename):
+        commit = self._get_commit(branch_name)
+        if commit:
+            tree = commit.tree
+            if filename in tree:
+                blob = tree[filename]
+                if blob:
+                    return {
+                        "commit_id": str(commit.id),
+                        "blob_id": str(blob.id),
+                        "blob_content": blob.data.decode(encoding="UTF-8"),
+                    }
+        return {}
+
+    def get_content_by_id(self, blob_id):
+        blob = self.get(blob_id)
         return blob.data.decode(encoding="UTF-8")
-    return None
-
-
-def get_content_by_hash(repo_name, blobhash):
-    repo = Repository("doc/" + repo_name)
-    blob = repo.get(blobhash)
-    return blob.data.decode(encoding="UTF-8")

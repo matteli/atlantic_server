@@ -17,7 +17,6 @@ cffi = "^1.14.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
-flake8 = "^3"
 pylint = "^2.4.3"
 black = {version = "^19.3b0", allow-prereleases = true}
 pylint-django = "^2.0.11"
