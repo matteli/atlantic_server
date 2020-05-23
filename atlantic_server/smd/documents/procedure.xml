@@ -1,14 +1,11 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <dmodule>
   <identAndStatusSection>
     <dmAddress>
       <dmIdent>
-        <dmCode modelIdentCode="" systemDiffCode="" systemCode="" subSystemCode="" subSubSystemCode="" assyCode="" disassyCode="" disassyCodeVariant="" infoCode="" infoCodeVariant="" itemLocationCode="">
-        </dmCode>
-        <language>
-        </language>
-        <issueInfo>
-        </issueInfo>
+        <dmCode />
+        <language />
+        <issueInfo />
       </dmIdent>
     </dmAddress>
   </identAndStatusSection>
@@ -16,9 +13,7 @@
     <procedure>
       <mainProcedure>
         <proceduralStep>
-          <para>
-            Coucou
-          </para>
+          <para>Coucou</para>
         </proceduralStep>
       </mainProcedure>
     </procedure>

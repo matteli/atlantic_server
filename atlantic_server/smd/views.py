@@ -1,6 +1,6 @@
 import re
 import os
-import xml.etree.ElementTree as ET
+from lxml import etree
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.status import (
@@ -48,25 +48,37 @@ class DocRefViewSet(viewsets.ViewSet):
 
 class DocRefFileViewSet(viewsets.ViewSet):
     def init_xml_doc(self, type, dm_code):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        parser = etree.XMLParser(remove_blank_text=True)
         if type == "xpro":
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            tree = ET.parse(base_dir + "/documents/procedure.xml")
-            root = tree.getroot()
-
-            for node in root.iter("dmCode"):
-                node.set("modelIdentCode", dm_code["modelIdentCode"])
-                node.set("systemDiffCode", dm_code["systemDiffCode"])
-                node.set("systemCode", dm_code["systemCode"])
-                node.set("subSystemCode", dm_code["subSystemCode"])
-                node.set("subSubSystemCode", dm_code["subSubSystemCode"])
-                node.set("assyCode", dm_code["assyCode"])
-                node.set("disassyCode", dm_code["disassyCode"])
-                node.set("disassyCodeVariant", dm_code["disassyCodeVariant"])
-                node.set("infoCode", dm_code["infoCode"])
-                node.set("infoCodeVariant", dm_code["infoCodeVariant"])
-                node.set("itemLocationCode", dm_code["itemLocationCode"])
-        xml_str = ET.tostring(root, encoding="unicode", method="xml")
+            root = etree.parse(base_dir + "/documents/procedure.xml", parser)
+            node = root.xpath("//dmCode")
+            node[0].set("modelIdentCode", dm_code["modelIdentCode"])
+            node[0].set("systemDiffCode", dm_code["systemDiffCode"])
+            node[0].set("systemCode", dm_code["systemCode"])
+            node[0].set("subSystemCode", dm_code["subSystemCode"])
+            node[0].set("subSubSystemCode", dm_code["subSubSystemCode"])
+            node[0].set("assyCode", dm_code["assyCode"])
+            node[0].set("disassyCode", dm_code["disassyCode"])
+            node[0].set("disassyCodeVariant", dm_code["disassyCodeVariant"])
+            node[0].set("infoCode", dm_code["infoCode"])
+            node[0].set("infoCodeVariant", dm_code["infoCodeVariant"])
+            node[0].set("itemLocationCode", dm_code["itemLocationCode"])
+        xml_str = etree.tostring(
+            root, encoding="unicode", method="xml", pretty_print=True,
+        )
         return xml_str
+
+    def format_xml(self, xml_str):
+        parser = etree.XMLParser(remove_blank_text=True)
+        root = etree.fromstring(bytes(xml_str, encoding="utf8"), parser=parser)
+        return etree.tostring(
+            root,
+            encoding="unicode",
+            method="xml",
+            doctype='<?xml version="1.0" encoding="UTF-8"?>',
+            pretty_print=True,
+        )
 
     def list(self, request, doc_slug_model_plane=None, reference_pk=None):
         files = Repo(doc_slug_model_plane).list_files(reference_pk)
@@ -107,9 +119,10 @@ class DocRefFileViewSet(viewsets.ViewSet):
             f"{dm_code['infoCodeVariant']}-"
             f"{dm_code['itemLocationCode']}.XML"
         )
+        content = self.init_xml_doc(type, dm_code)
         ids = Repo(doc_slug_model_plane).commit_file(
             filename,
-            self.init_xml_doc(type, dm_code),  # content
+            content,
             str(self.request.user),
             self.request.user.email,
             branch_name=reference_pk,
@@ -117,7 +130,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
         if ids["blob_id"]:
             meta = {
                 "blob_id": ids["blob_id"],
-                "doc": doc_slug_model_plane,  # Doc.objects.get(pk=doc_slug_model_plane),
+                "doc": doc_slug_model_plane,
                 "editor": self.request.user.pk,
                 "type": type,
             }
@@ -128,7 +141,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
                     {
                         "meta": FileSerializer(file).data,
                         "filename": filename,
-                        "content": "",
+                        "content": content,
                     },
                     status=HTTP_200_OK,
                 )
@@ -151,10 +164,11 @@ class DocRefFileViewSet(viewsets.ViewSet):
         return Response({}, status=HTTP_404_NOT_FOUND)
 
     def update(self, request, pk=None, doc_slug_model_plane=None, reference_pk=None):
-        filename = re.sub(r"-(?!.*-)", ".", pk)
-        content = self.request.data["content"]
+        filename = re.sub(r"-(?!.*-)", ".", pk).upper()
+        content = self.format_xml(self.request.data["content"])
         commit_id = self.request.data["commit"]
         meta = self.request.data["meta"]
+
         ids = Repo(doc_slug_model_plane).commit_file(
             filename,
             content,
@@ -164,15 +178,12 @@ class DocRefFileViewSet(viewsets.ViewSet):
             parent_commit_id=commit_id,
         )
         if ids["blob_id"]:
-            meta[
-                "doc"
-            ] = doc_slug_model_plane  # Doc.objects.get(pk=doc_slug_model_plane)
+            meta["doc"] = doc_slug_model_plane
             meta["editor"] = self.request.user.pk
             meta["blob_id"] = ids["blob_id"]
             serializer = FileSerializer(data=meta)
             if serializer.is_valid():
                 file = serializer.save()
-                # serializer.validated_data["commit"] = ids["commit_id"]
                 return Response(
                     {
                         "meta": FileSerializer(file).data,

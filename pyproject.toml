@@ -12,7 +12,8 @@ Django = "^2.2"
 djangorestframework = "^3.10.3"
 drf-nested-routers = "^0.91"
 django-filter = "^2.2.0"
-pygit2 = "~1.0"
+lxml = "^4"
+pygit2 = "~1.2"
 cffi = "^1.14.0"
 
 [tool.poetry.dev-dependencies]
