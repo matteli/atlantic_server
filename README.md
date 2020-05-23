@@ -24,7 +24,7 @@ The recommended way to install it is to use a virtual environment.
     ```
 
 4. Open settings.py and adjust parameters
-    - Enter a secret key to SECRET_KEY (see behind for strong secret key)
+    - Enter a secret key to SECRET_KEY
     - Change DEBUG to False
     - Change MEDIA_ROOT to an url that points to an entry that apache2 serves (see web client side of the application)
     - save and close the file
