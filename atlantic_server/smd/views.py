@@ -131,12 +131,12 @@ class DocRefFileViewSet(viewsets.ViewSet):
             meta = {
                 "blob_id": ids["blob_id"],
                 "doc": doc_slug_model_plane,
-                "editor": self.request.user.pk,
+                # "editor": self.request.user,  # .pk,
                 "type": type,
             }
             serializer = FileSerializer(data=meta)
             if serializer.is_valid():
-                file = serializer.save()
+                file = serializer.save(editor=self.request.user)
                 return Response(
                     {
                         "meta": FileSerializer(file).data,
@@ -179,11 +179,11 @@ class DocRefFileViewSet(viewsets.ViewSet):
         )
         if ids["blob_id"]:
             meta["doc"] = doc_slug_model_plane
-            meta["editor"] = self.request.user.pk
+            # meta["editor"] = self.request.user  # .pk
             meta["blob_id"] = ids["blob_id"]
             serializer = FileSerializer(data=meta)
             if serializer.is_valid():
-                file = serializer.save()
+                file = serializer.save(editor=self.request.user)
                 return Response(
                     {
                         "meta": FileSerializer(file).data,

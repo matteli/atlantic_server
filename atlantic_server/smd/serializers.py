@@ -26,6 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
 class FileSerializer(serializers.ModelSerializer):
     # editor = UserSerializer()
     # doc = ModelPlaneSerializer()
+    editor = serializers.StringRelatedField()
 
     class Meta:
         model = File
