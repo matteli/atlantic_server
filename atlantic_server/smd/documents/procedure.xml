@@ -7,6 +7,10 @@
         <language />
         <issueInfo />
       </dmIdent>
+      <dmAdressItems>
+        <issueDate />
+        <dmTitle />
+      </dmAdressItems>
     </dmAddress>
   </identAndStatusSection>
   <content>

@@ -47,7 +47,8 @@ class DocRefViewSet(viewsets.ViewSet):
 
 
 class DocRefFileViewSet(viewsets.ViewSet):
-    def init_xml_doc(self, type, dm_code):
+    def init_xml_doc(self, type, ias_section):
+        dm_code = ias_section["dmAddress"]["dmIdent"]["dmCode"]
         base_dir = os.path.dirname(os.path.abspath(__file__))
         parser = etree.XMLParser(remove_blank_text=True)
         if type == "xpro":
@@ -64,6 +65,16 @@ class DocRefFileViewSet(viewsets.ViewSet):
             node[0].set("infoCode", dm_code["infoCode"])
             node[0].set("infoCodeVariant", dm_code["infoCodeVariant"])
             node[0].set("itemLocationCode", dm_code["itemLocationCode"])
+
+            node = root.xpath("//dmTitle")
+            node[0].set(
+                "techName",
+                ias_section["dmAddress"]["dmAdressItems"]["dmTitle"]["techName"],
+            )
+            node[0].set(
+                "infoName",
+                ias_section["dmAddress"]["dmAdressItems"]["dmTitle"]["infoName"],
+            )
         xml_str = etree.tostring(
             root, encoding="unicode", method="xml", pretty_print=True,
         )
@@ -93,7 +104,32 @@ class DocRefFileViewSet(viewsets.ViewSet):
         return Response(response, status=HTTP_200_OK)
 
     def create(self, request, doc_slug_model_plane=None, reference_pk=None):
-        dm_code = {
+        ias_section = {
+            "dmAddress": {
+                "dmIdent": {
+                    "dmCode": {
+                        "modelIdentCode": doc_slug_model_plane.upper(),
+                        "systemDiffCode": self.request.data["systemDiffCode"],
+                        "systemCode": self.request.data["systemCode"],
+                        "subSystemCode": self.request.data["subSystemCode"],
+                        "subSubSystemCode": self.request.data["subSubSystemCode"],
+                        "assyCode": self.request.data["assyCode"],
+                        "disassyCode": f"{int(self.request.data['disassyCode']):02d}",
+                        "disassyCodeVariant": f"{int(self.request.data['disassyCodeVariant']):01d}",
+                        "infoCode": self.request.data["infoCode"],
+                        "infoCodeVariant": self.request.data["infoCodeVariant"],
+                        "itemLocationCode": self.request.data["itemLocationCode"],
+                    }
+                },
+                "dmAdressItems": {
+                    "dmTitle": {
+                        "techName": self.request.data["techName"],
+                        "infoName": self.request.data["infoName"],
+                    }
+                },
+            }
+        }
+        """dm_code = {
             "modelIdentCode": doc_slug_model_plane.upper(),
             "systemDiffCode": self.request.data["systemDiffCode"],
             "systemCode": self.request.data["systemCode"],
@@ -105,7 +141,8 @@ class DocRefFileViewSet(viewsets.ViewSet):
             "infoCode": self.request.data["infoCode"],
             "infoCodeVariant": self.request.data["infoCodeVariant"],
             "itemLocationCode": self.request.data["itemLocationCode"],
-        }
+        }"""
+        dm_code = ias_section["dmAddress"]["dmIdent"]["dmCode"]
         type = self.request.data["type"]
         filename = (
             f"{dm_code['modelIdentCode']}-"
@@ -119,7 +156,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
             f"{dm_code['infoCodeVariant']}-"
             f"{dm_code['itemLocationCode']}.XML"
         )
-        content = self.init_xml_doc(type, dm_code)
+        content = self.init_xml_doc(type, ias_section)
         ids = Repo(doc_slug_model_plane).commit_file(
             filename,
             content,
