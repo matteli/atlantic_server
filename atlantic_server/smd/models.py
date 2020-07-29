@@ -28,11 +28,11 @@ class Doc(models.Model):
             "First commit",
             first_commit=True,
         )
-        File.objects.create(
+        """File.objects.create(
             blob_id=response["blob_id"],
             doc=self,
             editor=User.objects.filter(is_superuser=True).first(),
-        )
+        )"""
 
 
 class File(models.Model):

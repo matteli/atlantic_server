@@ -88,14 +88,14 @@ class Repo(Repository):
         return filename in tree
 
     def list_files(self, branch_name):
-        files = []
+        files = {}
         tree = self._get_tree(branch_name)
         if tree:
             for obj in tree:
-                files.append({"blob_id": str(obj.id), "filename": obj.name})
+                files[str(obj.id)] = {"filename": obj.name}
         return files
 
-    def get_blob_by_name(self, branch_name, filename):
+    def get_file(self, branch_name, filename):
         commit = self._get_commit(branch_name)
         if commit:
             tree = commit.tree
@@ -103,12 +103,11 @@ class Repo(Repository):
                 blob = tree[filename]
                 if blob:
                     return {
-                        "commit_id": str(commit.id),
-                        "blob_id": str(blob.id),
-                        "blob_content": blob.data.decode(encoding="UTF-8"),
+                        "commit": str(commit.id),
+                        "xml_str": blob.data.decode(encoding="UTF-8"),
                     }
         return {}
 
-    def get_content_by_id(self, blob_id):
+    def get_file_by_id(self, blob_id):
         blob = self.get(blob_id)
         return blob.data.decode(encoding="UTF-8")

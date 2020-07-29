@@ -91,7 +91,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
             pretty_print=True,
         )
 
-    def list(self, request, doc_slug_model_plane=None, reference_pk=None):
+    """def list(self, request, doc_slug_model_plane=None, reference_pk=None):
         files = Repo(doc_slug_model_plane).list_files(reference_pk)
         blobs = list(map(lambda d: d.get("blob_id"), files))
         queryset = File.objects.filter(blob_id__in=blobs)
@@ -101,7 +101,21 @@ class DocRefFileViewSet(viewsets.ViewSet):
                 if file["blob_id"] == resp["blob_id"]:
                     resp["filename"] = file["filename"]
                     break
-        return Response(response, status=HTTP_200_OK)
+        return Response(response, status=HTTP_200_OK)"""
+
+    def list(self, request, doc_slug_model_plane=None, reference_pk=None):
+        files = Repo(doc_slug_model_plane).list_files(reference_pk)
+        parser = etree.XMLParser(remove_blank_text=True)
+        for id, file in files.items():
+            extension = file["filename"].split(".")[-1]
+            if extension == "XML":
+                xml_str = Repo(doc_slug_model_plane).get_file_by_id(id)
+                root = etree.fromstring(bytes(xml_str, encoding="utf8"), parser=parser)
+                if len(root.xpath("/dmodule/content/procedure")) == 1:
+                    file["type"] = "procedure"
+            elif extension == "MD":
+                file["type"] = "markdown"
+        return Response(files, status=HTTP_200_OK)
 
     def create(self, request, doc_slug_model_plane=None, reference_pk=None):
         ias_section = {
@@ -129,19 +143,58 @@ class DocRefFileViewSet(viewsets.ViewSet):
                 },
             }
         }
-        """dm_code = {
-            "modelIdentCode": doc_slug_model_plane.upper(),
-            "systemDiffCode": self.request.data["systemDiffCode"],
-            "systemCode": self.request.data["systemCode"],
-            "subSystemCode": self.request.data["subSystemCode"],
-            "subSubSystemCode": self.request.data["subSubSystemCode"],
-            "assyCode": self.request.data["assyCode"],
-            "disassyCode": f"{int(self.request.data['disassyCode']):02d}",
-            "disassyCodeVariant": f"{int(self.request.data['disassyCodeVariant']):01d}",
-            "infoCode": self.request.data["infoCode"],
-            "infoCodeVariant": self.request.data["infoCodeVariant"],
-            "itemLocationCode": self.request.data["itemLocationCode"],
-        }"""
+        dm_code = ias_section["dmAddress"]["dmIdent"]["dmCode"]
+        type = self.request.data["type"]
+        filename = (
+            f"{dm_code['modelIdentCode']}-"
+            f"{dm_code['systemDiffCode']}-"
+            f"{dm_code['systemCode']}-"
+            f"{dm_code['subSystemCode']}-"
+            f"{dm_code['assyCode']}-"
+            f"{dm_code['disassyCode']}"
+            f"{dm_code['disassyCodeVariant']}-"
+            f"{dm_code['infoCode']}"
+            f"{dm_code['infoCodeVariant']}-"
+            f"{dm_code['itemLocationCode']}.XML"
+        )
+        xml_str = self.init_xml_doc(type, ias_section)
+        commit = Repo(doc_slug_model_plane).commit_file(
+            filename,
+            xml_str,
+            str(self.request.user),
+            self.request.user.email,
+            branch_name=reference_pk,
+        )
+        if commit["blob_id"]:
+            return Response({"filename": filename,}, status=HTTP_200_OK,)
+        return Response({}, status=HTTP_400_BAD_REQUEST)
+
+    """def create(self, request, doc_slug_model_plane=None, reference_pk=None):
+        ias_section = {
+            "dmAddress": {
+                "dmIdent": {
+                    "dmCode": {
+                        "modelIdentCode": doc_slug_model_plane.upper(),
+                        "systemDiffCode": self.request.data["systemDiffCode"],
+                        "systemCode": self.request.data["systemCode"],
+                        "subSystemCode": self.request.data["subSystemCode"],
+                        "subSubSystemCode": self.request.data["subSubSystemCode"],
+                        "assyCode": self.request.data["assyCode"],
+                        "disassyCode": f"{int(self.request.data['disassyCode']):02d}",
+                        "disassyCodeVariant": f"{int(self.request.data['disassyCodeVariant']):01d}",
+                        "infoCode": self.request.data["infoCode"],
+                        "infoCodeVariant": self.request.data["infoCodeVariant"],
+                        "itemLocationCode": self.request.data["itemLocationCode"],
+                    }
+                },
+                "dmAdressItems": {
+                    "dmTitle": {
+                        "techName": self.request.data["techName"],
+                        "infoName": self.request.data["infoName"],
+                    }
+                },
+            }
+        }
         dm_code = ias_section["dmAddress"]["dmIdent"]["dmCode"]
         type = self.request.data["type"]
         filename = (
@@ -176,31 +229,63 @@ class DocRefFileViewSet(viewsets.ViewSet):
                 file = serializer.save(editor=self.request.user)
                 return Response(
                     {
-                        "meta": FileSerializer(file).data,
+                        # "meta": FileSerializer(file).data,
                         "filename": filename,
-                        "content": content,
+                        # "content": content,
                     },
                     status=HTTP_200_OK,
                 )
-        return Response({}, status=HTTP_400_BAD_REQUEST)
+        return Response({}, status=HTTP_400_BAD_REQUEST)"""
 
     def retrieve(self, request, pk=None, doc_slug_model_plane=None, reference_pk=None):
         filename = re.sub(r"-(?!.*-)", ".", pk).upper()
-        blob = Repo(doc_slug_model_plane).get_blob_by_name(reference_pk, filename)
-        if blob["blob_id"]:
-            queryset = File.objects.get(pk=blob["blob_id"])
+        file = Repo(doc_slug_model_plane).get_file(reference_pk, filename)
+        if file:
+            return Response(
+                {"commit": file["commit"], "xml_str": file["xml_str"],},
+                status=HTTP_200_OK,
+            )
+        return Response({}, HTTP_404_NOT_FOUND)
+
+    """def retrieve(self, request, pk=None, doc_slug_model_plane=None, reference_pk=None):
+        filename = re.sub(r"-(?!.*-)", ".", pk).upper()
+        file = Repo(doc_slug_model_plane).get_file(reference_pk, filename)
+        if file:
+            queryset = File.objects.get(pk=file["blob_id"])
             meta = FileSerializer(queryset).data
             return Response(
                 {
                     "meta": meta,
-                    "commit": blob["commit_id"],
-                    "content": blob["blob_content"],
+                    "commit": file["commit"],
+                    "content": file["blob_content"],
                 },
                 status=HTTP_200_OK,
             )
-        return Response({}, status=HTTP_404_NOT_FOUND)
+            return Response(file, status=HTTP_200_OK)
+        return Response(file, status=(HTTP_200_OK if file else HTTP_404_NOT_FOUND))"""
 
     def update(self, request, pk=None, doc_slug_model_plane=None, reference_pk=None):
+        filename = re.sub(r"-(?!.*-)", ".", pk).upper()
+        xml_str = self.format_xml(self.request.data["xml_str"])
+        parent_commit = self.request.data["commit"]
+
+        commit = Repo(doc_slug_model_plane).commit_file(
+            filename,
+            xml_str,
+            str(self.request.user),
+            self.request.user.email,
+            branch_name=reference_pk,
+            parent_commit_id=parent_commit,
+        )
+
+        if commit["blob_id"]:
+            return Response(
+                {"commit": commit["commit_id"], "xml_str": xml_str,},
+                status=HTTP_200_OK,
+            )
+        return Response({}, status=HTTP_400_BAD_REQUEST)
+
+    """def update(self, request, pk=None, doc_slug_model_plane=None, reference_pk=None):
         filename = re.sub(r"-(?!.*-)", ".", pk).upper()
         content = self.format_xml(self.request.data["content"])
         commit_id = self.request.data["commit"]
@@ -229,7 +314,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
                     },
                     status=HTTP_200_OK,
                 )
-        return Response({}, status=HTTP_400_BAD_REQUEST)
+        return Response({}, status=HTTP_400_BAD_REQUEST)"""
 
     def partial_update(
         self, request, pk=None, doc_slug_model_plane=None, reference_pk=None
