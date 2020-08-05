@@ -51,7 +51,7 @@ class DocRefFileViewSet(viewsets.ViewSet):
         dm_code = ias_section["dmAddress"]["dmIdent"]["dmCode"]
         base_dir = os.path.dirname(os.path.abspath(__file__))
         parser = etree.XMLParser(remove_blank_text=True)
-        if type == "xpro":
+        if type == "procedure":
             root = etree.parse(base_dir + "/documents/procedure.xml", parser)
             node = root.xpath("//dmCode")
             node[0].set("modelIdentCode", dm_code["modelIdentCode"])
