@@ -134,3 +134,8 @@ MEDIA_ROOT = BASE_DIR + "/media/"
 MEDIA_URL = "/media/"
 
 STATIC_URL = "/static/"
+
+try:
+    from conf import *
+except ModuleNotFoundError:
+    pass

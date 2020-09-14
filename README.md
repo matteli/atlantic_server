@@ -11,25 +11,46 @@ The recommended way to install it is to use a virtual environment.
     apt install -y pipx apache2 libapache2-mod-wsgi-py3 mariadb-server python3-dev libmariadb-dev libmariadbclient-dev build-essential
     ```
 
-2. If your root user, create a user and log it
+2. Create and configure database
     ```
-    adduser username
-    su - username
+    mysql -u root -p
+    CREATE DATABASE atlantic CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE USER 'aristide'@'localhost' IDENTIFIED BY 'password';
+    GRANT ALL PRIVILEGES ON atlantic . * TO 'aristide'@'localhost';
+    FLUSH PRIVILEGES;
+    quit;
     ```
 
-3. Install atlantic_server
+3. Create a user and log it
+    ```
+    adduser aristide
+    su - aristide
+    ```
+
+4. Install atlantic_server
     ```
     pipx install atlantic_server
     ```
 
-4. Open settings.py in the env and adjust parameters
-    - Enter a secret key to SECRET_KEY
-    - Change DEBUG to False
-    - Change MEDIA_ROOT to a location that apache2 serves (see web client side of the application)
-    - Change STATIC_ROOT to a location that apache2 serves (see web client side of the application)
-    - save and close the file
+5. In the user home directory, create a conf.py file
+    ```
+    nano ~/conf.py
+    ```
+    and paste following parameters (with adjust):
+    ```
+    SECRET_KEY = "enter here a lot of randoms letters and numbers here"
+    DEBUG = True
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "aristide",
+            "USER": "atlantic",
+            "PASSWORD": "password",
+        }
+    }
+    MEDIA_ROOT = "/home/aristide/www/media/"
 
-5. Configure Django app
+6. Configure Django app
     ```
     atlantic_server makemigrations com atl smd 
     atlantic_server migrate
@@ -37,35 +58,49 @@ The recommended way to install it is to use a virtual environment.
     atlantic_server createsuperuser
     ```
 
-6. Configure Apache2
+7. Configure Apache2
     - Return to root user
         ```
         exit
         ```
-    - Edit a new file
+    - Create a new file
         ```
         nano /etc/apache2/site-available/atlantic.conf
         ```
-    - Paste in following code
+    - Paste following parameters (with adjust):
         ```
         <VirtualHost *:80>
-            <Directory /home/username/atlantic_server>
+            ServerName url.for.your.site
+            ErrorLog ${APACHE_LOG_DIR}/error.log
+            CustomLog ${APACHE_LOG_DIR}/access.log combined
+            DocumentRoot /home/aristide/www/vue/
+            <Directory /home/aristide/.local/pipx/venvs/atlantic-server/lib/python3.7/site-packages/atlantic_server>
                 <Files wsgi.py>
                     Require all granted
                 </Files>
             </Directory>
             WSGIPassAuthorization On
-            WSGIDaemonProcess atl python-home=/home/username python-path=/home/username
-            WSGIProcessGroup atl
-            WSGIScriptAlias / /home/username/atlantic_server/wsgi.py
+            WSGIDaemonProcess aristide python-home=/home/aristide/.local/pipx/venvs/atlantic-server python-path=/home/aristide
+            WSGIProcessGroup aristide
+            WSGIScriptAlias /admin /home/aristide/.local/pipx/venvs/atlantic-server/lib/python3.7/site-packages/atlantic_server/wsgi.py/admin
+            WSGIScriptAlias /api /home/aristide/.local/pipx/venvs/atlantic-server/lib/python3.7/site-packages/atlantic_server/wsgi.py/api
+            <Directory /home/aristide/www/>
+                    Require all granted
+            </Directory>
+            Alias /media/ /home/aristide/www/media/
+            Alias /static/ /home/aristide/www/static/
         </VirtualHost>
         ```
+    The DocumentRoot directory is the place where you upload the atlantic_client side.
+
     - Save and close file
 
 
-7. Enabled site for apache
+8. Enabled site for apache
     ```
     a2dissite *
     a2ensite atlantic
     systemctl reload apache2
     ```
+
+9. It is recommended to secure the access of your site with a certificate...
