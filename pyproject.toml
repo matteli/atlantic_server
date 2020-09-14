@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "atlantic_server"
-version = "0.3.4"
+version = "0.3.5"
 description = "Server side of an application of an Aircraft Technical Log"
 authors = ["Matthieu Nué <matthieu.nue@gmail.com>"]
 license = "MIT"
