@@ -15,7 +15,7 @@ django-filter = "^2"
 lxml = "^4"
 pygit2 = "~1.2"
 cffi = "^1.14.0"
-wheel = "^0.35.1"
+wheel = ">=0.35.1,<0.39.0"
 mysqlclient = "^2"
 
 [tool.poetry.dev-dependencies]
